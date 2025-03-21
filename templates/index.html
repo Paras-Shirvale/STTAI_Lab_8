@@ -13,7 +13,7 @@
     <div id="output"></div>
 </body>
 </html> -->
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -46,6 +46,49 @@
             let response = await fetch("/get?paragraph=" + encodeURIComponent(paragraph));
             let data = await response.text();
             document.getElementById("result").innerText = "Matched words: " + data;
+        }
+    </script>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elasticsearch Query Interface</title>
+</head>
+<body>
+    <h2>Elasticsearch Query Interface</h2>
+    
+    <input type="text" id="word" placeholder="Enter text to insert">
+    <button onclick="insertData()">Insert</button>
+    
+    <br><br>
+
+    <input type="text" id="searchWord" placeholder="Enter word to search">
+    <button onclick="getData()">Get</button>
+    
+    <h3>Response:</h3>
+    <p id="result"></p>
+
+    <script>
+        async function insertData() {
+            let text = document.getElementById("word").value;
+            let response = await fetch("/insert/", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ text: text })
+            });
+
+            let result = await response.json();
+            document.getElementById("result").innerText = "Inserted: " + JSON.stringify(result);
+        }
+
+        async function getData() {
+            let word = document.getElementById("searchWord").value;
+            let response = await fetch("/get/?word=" + encodeURIComponent(word));
+            let data = await response.json();
+            document.getElementById("result").innerText = "Matched lines: " + JSON.stringify(data.matched_lines);
         }
     </script>
 </body>

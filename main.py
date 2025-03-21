@@ -23,58 +23,57 @@
 
 # if __name__ == "__main__":
 #     uvicorn.run(app, host="127.0.0.1", port=9567)
-
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from elasticsearch import Elasticsearch
 import uvicorn
 
 app = FastAPI()
-es = Elasticsearch("http://localhost:9200")  # Connect to Elasticsearch
+es = Elasticsearch("http://localhost:9200")
 templates = Jinja2Templates(directory="templates")
 
-INDEX_NAME = "documents"
+INDEX_NAME = "words"
 
-# Ensure the index exists
 if not es.indices.exists(index=INDEX_NAME):
-    es.indices.create(index=INDEX_NAME)
+    es.indices.create(index=INDEX_NAME, body={
+        "mappings": {
+            "properties": {
+                "line_number": {"type": "integer"},
+                "text": {"type": "text"}
+            }
+        }
+    })
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/insert/")
-async def insert_word(word: str):
-    doc = {"word": word}
-    res = es.index(index=INDEX_NAME, body=doc)
-    return {"inserted": res['result']}
+async def insert_text(text: str = Form(...)):
+    """Insert text line-by-line into Elasticsearch"""
+    lines = text.split("\n")
+    for i, line in enumerate(lines, start=1):
+        doc = {"line_number": i, "text": line}
+        es.index(index=INDEX_NAME, body=doc)
+    return {"status": "Inserted successfully"}
 
-
-@app.get("/get")
-async def get_best_document(paragraph: str):
-    words = paragraph.lower().split()  # Tokenize paragraph
-    matched_words = {}
-
-    for word in words:
-        query = {
-            "query": {
-                "match": {"content": word}  # Search for each word
-            }
+@app.get("/get/")
+async def get_matching_lines(word: str = Query(..., description="Word to search for")):
+    """Search for the word and return lines containing it"""
+    query = {
+        "query": {
+            "match": {"text": word}
         }
-        response = es.search(index=INDEX_NAME, body=query)
+    }
+    response = es.search(index=INDEX_NAME, body=query)
 
-        if response["hits"]["total"]["value"] > 0:
-            matched_words[word] = [hit["_source"]["content"] for hit in response["hits"]["hits"]]
+    matched_lines = [
+        {"line_number": hit["_source"]["line_number"], "text": hit["_source"]["text"]}
+        for hit in response["hits"]["hits"]
+    ]
 
-    return JSONResponse(content={"matched_words": matched_words})
+    return JSONResponse(content={"matched_lines": matched_lines})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=9567)
-
-
-
-import requests
-
-response = requests.get("http://localhost:9200/words/_search?pretty")
-print(response.text)  # Print response as text
