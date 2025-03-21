@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  frontend:
+    build: .
+    ports:
+      - "9567:9567"
+    networks:
+      - app_network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    environment:
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
