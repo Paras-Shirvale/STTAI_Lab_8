@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  fastapi-ui:
+    build: .
+    ports:
+      - "9567:9567"
+    restart: unless-stopped

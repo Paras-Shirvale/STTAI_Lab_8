@@ -1,5 +1,0 @@
-fastapi
-uvicorn
-elasticsearch
-jinja2
-python-multipart
